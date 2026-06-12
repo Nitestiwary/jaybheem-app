@@ -63,7 +63,11 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
       final tempDir = await getTemporaryDirectory();
       final path = '${tempDir.path}/jaybheem_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
-      await Dio().download(url, path);
+      await Dio().download(
+        url, 
+        path,
+        options: Options(headers: {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}),
+      );
       
       if (widget.status.type == 'video') {
         await Gal.putVideo(path);
@@ -146,7 +150,11 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
       final path = '${tempDir.path}/jaybheem_share_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
       // Download file to temp storage so social apps can access it locally
-      await Dio().download(url, path);
+      await Dio().download(
+        url, 
+        path,
+        options: Options(headers: {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}),
+      );
       
       final appinioSocialShare = AppinioSocialShare();
 
