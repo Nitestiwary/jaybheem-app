@@ -26,7 +26,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadFeed() async {
     final prefs = await SharedPreferences.getInstance();
-    final seenIds = prefs.getStringList('seen_statuses') ?? [];
+    // 'seen_statuses' list of strings in format: "id|timestamp_ms"
+    final seenList = prefs.getStringList('seen_statuses') ?? [];
+    
+    final int nowMs = DateTime.now().millisecondsSinceEpoch;
+    final int oneDayMs = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    
+    // Filter out old entries from SharedPreferences to keep it clean
+    List<String> validSeenList = [];
+    Set<String> seenIdsWithin24h = {};
+    
+    for (String item in seenList) {
+      final parts = item.split('|');
+      if (parts.length == 2) {
+        final id = parts[0];
+        final timestamp = int.tryParse(parts[1]) ?? 0;
+        
+        if (nowMs - timestamp < oneDayMs) {
+          validSeenList.add(item);
+          seenIdsWithin24h.add(id);
+        }
+      }
+      // Old formats without timestamps are ignored/dropped automatically
+    }
+    
+    // Update preferences with cleaned up list
+    await prefs.setStringList('seen_statuses', validSeenList);
     
     // Generate fresh dummy data (now strictly images/videos)
     List<StatusModel> allStatuses = DummyData.generateStatuses();
@@ -36,19 +61,29 @@ class _HomeScreenState extends State<HomeScreen> {
       allStatuses = allStatuses.where((s) => s.category == widget.initialCategory).toList();
     }
     
-    // Deduplicate: remove already seen posts
-    List<StatusModel> unseenFeed = allStatuses.where((s) => !seenIds.contains(s.id)).toList();
+    // Deduplicate: remove posts seen within last 24h
+    List<StatusModel> unseenFeed = allStatuses.where((s) => !seenIdsWithin24h.contains(s.id)).toList();
     
-    // If we ran out of unseen posts, we just show them all again
+    // If we ran out of unseen posts, we just show them all again (fallback)
     if (unseenFeed.isEmpty) {
       unseenFeed = allStatuses;
     }
 
-    // Shuffle for a TikTok-like random feed experience
-    unseenFeed.shuffle();
+    // Always try to push newest post at top, but still keep it random
+    // We sort by newest first...
+    unseenFeed.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    
+    // ...then we shuffle in small chunks to give a random feel while keeping newer items generally at the top.
+    List<StatusModel> mixedFeed = [];
+    for (int i = 0; i < unseenFeed.length; i += 5) {
+      int end = (i + 5 < unseenFeed.length) ? i + 5 : unseenFeed.length;
+      List<StatusModel> chunk = unseenFeed.sublist(i, end);
+      chunk.shuffle();
+      mixedFeed.addAll(chunk);
+    }
 
     setState(() {
-      _feed = unseenFeed;
+      _feed = mixedFeed;
       _isLoading = false;
     });
 
@@ -60,12 +95,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _markAsSeen(String id) async {
     final prefs = await SharedPreferences.getInstance();
-    List<String> seenIds = prefs.getStringList('seen_statuses') ?? [];
-    if (!seenIds.contains(id)) {
-      seenIds.add(id);
+    List<String> seenList = prefs.getStringList('seen_statuses') ?? [];
+    
+    // Check if it already exists to avoid duplicates
+    if (!seenList.any((element) => element.startsWith('$id|'))) {
+      seenList.add('$id|${DateTime.now().millisecondsSinceEpoch}');
       // Keep only the last 500 to prevent infinite local storage growth
-      if (seenIds.length > 500) seenIds.removeRange(0, seenIds.length - 500);
-      await prefs.setStringList('seen_statuses', seenIds);
+      if (seenList.length > 500) seenList.removeRange(0, seenList.length - 500);
+      await prefs.setStringList('seen_statuses', seenList);
     }
   }
 
