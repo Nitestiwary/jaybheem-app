@@ -1,103 +1,113 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/dummy_data.dart';
 import '../models/status_model.dart';
-import '../widgets/status_card.dart';
-import '../theme/app_theme.dart';
+import '../widgets/media_item_widget.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String? initialCategory;
+  const HomeScreen({super.key, this.initialCategory});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<String> categories = DummyData.categories;
-  late List<StatusModel> statuses;
-  String selectedCategory = 'All';
+  late PageController _pageController;
+  List<StatusModel> _feed = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    statuses = DummyData.generateStatuses();
+    _pageController = PageController();
+    _loadFeed();
   }
 
-  List<StatusModel> get filteredStatuses {
-    if (selectedCategory == 'All') return statuses;
-    return statuses.where((s) => s.category == selectedCategory).toList();
+  Future<void> _loadFeed() async {
+    final prefs = await SharedPreferences.getInstance();
+    final seenIds = prefs.getStringList('seen_statuses') ?? [];
+    
+    // Generate fresh dummy data (now strictly images/videos)
+    List<StatusModel> allStatuses = DummyData.generateStatuses();
+    
+    // Filter by category if provided
+    if (widget.initialCategory != null && widget.initialCategory != 'All') {
+      allStatuses = allStatuses.where((s) => s.category == widget.initialCategory).toList();
+    }
+    
+    // Deduplicate: remove already seen posts
+    List<StatusModel> unseenFeed = allStatuses.where((s) => !seenIds.contains(s.id)).toList();
+    
+    // If we ran out of unseen posts, we just show them all again
+    if (unseenFeed.isEmpty) {
+      unseenFeed = allStatuses;
+    }
+
+    // Shuffle for a TikTok-like random feed experience
+    unseenFeed.shuffle();
+
+    setState(() {
+      _feed = unseenFeed;
+      _isLoading = false;
+    });
+
+    // Mark the first one as seen
+    if (_feed.isNotEmpty) {
+      _markAsSeen(_feed.first.id);
+    }
+  }
+
+  Future<void> _markAsSeen(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> seenIds = prefs.getStringList('seen_statuses') ?? [];
+    if (!seenIds.contains(id)) {
+      seenIds.add(id);
+      // Keep only the last 500 to prevent infinite local storage growth
+      if (seenIds.length > 500) seenIds.removeRange(0, seenIds.length - 500);
+      await prefs.setStringList('seen_statuses', seenIds);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Jay Bheem', style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
+      appBar: widget.initialCategory != null 
+        ? AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: Text(
+              widget.initialCategory!, 
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black87, blurRadius: 4)]),
+            ),
           )
-        ],
-      ),
-      body: Column(
-        children: [
-          // Categories list
-          Container(
-            height: 60,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: categories.length + 1,
-              itemBuilder: (context, index) {
-                final category = index == 0 ? 'All' : categories[index - 1];
-                final isSelected = category == selectedCategory;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(category),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          selectedCategory = category;
-                        });
-                      }
-                    },
-                    selectedColor: AppTheme.primaryBlue,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.darkText,
-                    ),
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          
-          // Feed
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 16),
-              itemCount: filteredStatuses.length,
-              itemBuilder: (context, index) {
-                final status = filteredStatuses[index];
-                return StatusCard(
-                  status: status,
-                  onSave: () {
-                    // Save functionality placeholder
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Saved to favorites!')),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+        : null,
+      body: PageView.builder(
+        controller: _pageController,
+        scrollDirection: Axis.vertical,
+        itemCount: _feed.length,
+        onPageChanged: (index) {
+          _markAsSeen(_feed[index].id);
+        },
+        itemBuilder: (context, index) {
+          return MediaItemWidget(status: _feed[index]);
+        },
       ),
     );
   }

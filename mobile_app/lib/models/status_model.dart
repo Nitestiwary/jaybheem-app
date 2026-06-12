@@ -2,10 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StatusModel {
   final String id;
-  final String? text;
+  final String? text; // Keep for captions
   final String? imageUrl;
+  final String? videoUrl;
   final String category;
-  final String type; // 'text' or 'image'
+  final String type; // 'image' or 'video'
   final int viewCount;
   final int shareCount;
   final DateTime createdAt;
@@ -14,6 +15,7 @@ class StatusModel {
     required this.id,
     this.text,
     this.imageUrl,
+    this.videoUrl,
     required this.category,
     required this.type,
     this.viewCount = 0,
@@ -27,8 +29,9 @@ class StatusModel {
       id: doc.id,
       text: data['text'],
       imageUrl: data['imageUrl'],
+      videoUrl: data['videoUrl'],
       category: data['category'] ?? 'General',
-      type: data['type'] ?? 'text',
+      type: data['type'] ?? 'image',
       viewCount: data['viewCount'] ?? 0,
       shareCount: data['shareCount'] ?? 0,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -39,6 +42,7 @@ class StatusModel {
     return {
       'text': text,
       'imageUrl': imageUrl,
+      'videoUrl': videoUrl,
       'category': category,
       'type': type,
       'viewCount': viewCount,

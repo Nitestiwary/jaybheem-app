@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/dummy_data.dart';
 import '../theme/app_theme.dart';
+import 'home_screen.dart';
 
 class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key});
@@ -27,7 +28,12 @@ class CategoriesScreen extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: InkWell(
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Viewing $category')));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => HomeScreen(initialCategory: category),
+                  ),
+                );
               },
               borderRadius: BorderRadius.circular(16),
               child: Container(

@@ -22,25 +22,33 @@ class DummyData {
     'https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/B.R._Ambedkar_with_his_family.jpg/800px-B.R._Ambedkar_with_his_family.jpg',
   ];
 
+  // A public domain sample video to use as a dummy short
+  static final List<String> _videoUrls = [
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+  ];
+
   static List<StatusModel> generateStatuses() {
     List<StatusModel> statuses = [];
     int idCounter = 1;
 
     for (int i = 0; i < 50; i++) {
       String category = categories[i % categories.length];
-      String text = _getDummyTextForCategory(category, i);
+      String caption = _getDummyTextForCategory(category, i);
       
-      // Every alternate post is an image post
-      bool isImage = i % 2 == 0;
+      // Every 3rd post is a video, rest are images
+      bool isVideo = i % 3 == 0;
       
       statuses.add(StatusModel(
         id: 'dummy_$idCounter',
-        text: text,
-        imageUrl: isImage ? _imageUrls[i % _imageUrls.length] : null,
+        text: caption,
+        imageUrl: !isVideo ? _imageUrls[i % _imageUrls.length] : null,
+        videoUrl: isVideo ? _videoUrls[i % _videoUrls.length] : null,
         category: category,
-        type: isImage ? 'image' : 'text',
-        shareCount: (i * 7) % 500,
-        viewCount: (i * 23) % 1500,
+        type: isVideo ? 'video' : 'image',
+        shareCount: (i * 12) % 1500,
+        viewCount: (i * 50) % 5000,
         createdAt: DateTime.now().subtract(Duration(hours: i * 2)),
       ));
       idCounter++;
