@@ -151,20 +151,28 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
       final appinioSocialShare = AppinioSocialShare();
 
       // "share_plus" is often more reliable for standard intents.
-      // Also, social_share does not support videoPath for IG/FB Stories, so we fallback to generic Share for videos.
-      if (platform == 'other' || platform == 'fb_feed' || platform == 'insta_feed' || widget.status.type == 'video') {
+      // Also, social_share does not support videoPath for IG/FB Stories,      // Fall back to share_plus for generic feeds
+      if (platform == 'other' || platform == 'fb_feed' || platform == 'insta_feed') {
         await Share.shareXFiles([XFile(path)], text: 'Check out this status on the Jay Bheem App!');
       } else {
-        // Direct Story integration using appinio_social_share (Images Only)
+        // Direct Story integration using appinio_social_share (Supports Video and Image!)
         switch (platform) {
           case 'whatsapp':
-            await appinioSocialShare.shareToWhatsapp("Check out this status on the Jay Bheem App! $url", filePath: path);
+            await appinioSocialShare.android.shareToWhatsapp("Check out this status on the Jay Bheem App! $url", path);
             break;
           case 'insta_story':
-            await appinioSocialShare.shareToInstagramStory("4057850024467367", backgroundImageUrl: path);
+            await appinioSocialShare.android.shareToInstagramStory("4057850024467367", 
+              backgroundImage: widget.status.type == 'image' ? path : null,
+              backgroundVideo: widget.status.type == 'video' ? path : null,
+            );
             break;
           case 'fb_story':
-            await appinioSocialShare.shareToFacebookStory("4057850024467367", backgroundTopColor: "#000000", backgroundBottomColor: "#000000", backgroundImageUrl: path);
+            await appinioSocialShare.android.shareToFacebookStory("4057850024467367", 
+              backgroundTopColor: "#000000", 
+              backgroundBottomColor: "#000000", 
+              backgroundImage: widget.status.type == 'image' ? path : null,
+              backgroundVideo: widget.status.type == 'video' ? path : null,
+            );
             break;
         }
       }
