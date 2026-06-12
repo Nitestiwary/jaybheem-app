@@ -25,10 +25,12 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
   VideoPlayerController? _videoController;
   bool _isDownloading = false;
   bool _isBookmarked = false;
+  late final Key _visibilityKey;
 
   @override
   void initState() {
     super.initState();
+    _visibilityKey = Key('${widget.status.id}_${UniqueKey().toString()}');
     if (widget.status.type == 'video' && widget.status.videoUrl != null) {
       _videoController = VideoPlayerController.networkUrl(Uri.parse(widget.status.videoUrl!))
         ..initialize().then((_) {
@@ -239,7 +241,7 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
   @override
   Widget build(BuildContext context) {
     return VisibilityDetector(
-      key: Key(widget.status.id),
+      key: _visibilityKey,
       onVisibilityChanged: _handleVisibilityChanged,
       child: Stack(
         fit: StackFit.expand,
@@ -248,6 +250,7 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
           if (widget.status.type == 'image' && widget.status.imageUrl != null)
             CachedNetworkImage(
               imageUrl: widget.status.imageUrl!,
+              httpHeaders: const {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
               fit: BoxFit.cover,
               placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
               errorWidget: (context, url, error) => const Center(child: Icon(Icons.error, color: Colors.white)),

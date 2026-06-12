@@ -15,11 +15,10 @@ class DummyData {
   ];
 
   static final List<String> _imageUrls = [
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Dr._Bhimrao_Ambedkar.jpg/800px-Dr._Bhimrao_Ambedkar.jpg',
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/B._R._Ambedkar_in_1950.jpg/800px-B._R._Ambedkar_in_1950.jpg',
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Lord_Buddha_in_Sarnath.jpg/800px-Lord_Buddha_in_Sarnath.jpg',
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Dr_B_R_Ambedkar_statue_at_Parliament_of_India.jpg/800px-Dr_B_R_Ambedkar_statue_at_Parliament_of_India.jpg',
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/B.R._Ambedkar_with_his_family.jpg/800px-B.R._Ambedkar_with_his_family.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/c/c3/Dr._Bhimrao_Ambedkar.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/e/e0/Buddha_in_Sarnath_Museum_%28Dhammajak_Mutra%29.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/8/85/Mahabodhi_Temple_Bodh_Gaya_India.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/3/3f/Lotus_flower_in_a_pond.jpg',
   ];
 
   // A public domain sample video to use as a dummy short
