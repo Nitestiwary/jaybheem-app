@@ -6,7 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:social_share/social_share.dart';
+import 'package:appinio_social_share/appinio_social_share.dart';
 import '../models/status_model.dart';
 import '../theme/app_theme.dart';
 
@@ -147,30 +147,24 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
 
       // Download file to temp storage so social apps can access it locally
       await Dio().download(url, path);
+      
+      final appinioSocialShare = AppinioSocialShare();
 
       // "share_plus" is often more reliable for standard intents.
       // Also, social_share does not support videoPath for IG/FB Stories, so we fallback to generic Share for videos.
       if (platform == 'other' || platform == 'fb_feed' || platform == 'insta_feed' || widget.status.type == 'video') {
         await Share.shareXFiles([XFile(path)], text: 'Check out this status on the Jay Bheem App!');
       } else {
-        // Direct Story integration using social_share (Images Only)
+        // Direct Story integration using appinio_social_share (Images Only)
         switch (platform) {
           case 'whatsapp':
-            await SocialShare.shareWhatsapp("Check out this status on the Jay Bheem App! $url");
+            await appinioSocialShare.shareToWhatsapp("Check out this status on the Jay Bheem App! $url", filePath: path);
             break;
           case 'insta_story':
-            await SocialShare.shareInstagramStory(
-              appId: "4057850024467367", // Generic Meta App ID
-              imagePath: path,
-            );
+            await appinioSocialShare.shareToInstagramStory("4057850024467367", backgroundImageUrl: path);
             break;
           case 'fb_story':
-            await SocialShare.shareFacebookStory(
-              appId: "4057850024467367",
-              imagePath: path,
-              backgroundTopColor: "#000000",
-              backgroundBottomColor: "#000000",
-            );
+            await appinioSocialShare.shareToFacebookStory("4057850024467367", backgroundTopColor: "#000000", backgroundBottomColor: "#000000", backgroundImageUrl: path);
             break;
         }
       }
