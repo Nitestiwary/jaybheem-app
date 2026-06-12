@@ -148,27 +148,26 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
       // Download file to temp storage so social apps can access it locally
       await Dio().download(url, path);
 
-      // "share_plus" is often more reliable for standard intents than social_share's generic options
-      if (platform == 'other' || platform == 'fb_feed' || platform == 'insta_feed') {
+      // "share_plus" is often more reliable for standard intents.
+      // Also, social_share does not support videoPath for IG/FB Stories, so we fallback to generic Share for videos.
+      if (platform == 'other' || platform == 'fb_feed' || platform == 'insta_feed' || widget.status.type == 'video') {
         await Share.shareXFiles([XFile(path)], text: 'Check out this status on the Jay Bheem App!');
       } else {
-        // Direct Story integration using social_share
+        // Direct Story integration using social_share (Images Only)
         switch (platform) {
           case 'whatsapp':
             await SocialShare.shareWhatsapp("Check out this status on the Jay Bheem App! $url");
             break;
           case 'insta_story':
             await SocialShare.shareInstagramStory(
-              appId: "4057850024467367", // Generic Meta App ID, required for Android/iOS story intents
-              imagePath: widget.status.type == 'image' ? path : null,
-              videoPath: widget.status.type == 'video' ? path : null,
+              appId: "4057850024467367", // Generic Meta App ID
+              imagePath: path,
             );
             break;
           case 'fb_story':
             await SocialShare.shareFacebookStory(
               appId: "4057850024467367",
-              imagePath: widget.status.type == 'image' ? path : null,
-              videoPath: widget.status.type == 'video' ? path : null,
+              imagePath: path,
               backgroundTopColor: "#000000",
               backgroundBottomColor: "#000000",
             );
@@ -177,7 +176,7 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error sharing to $platform: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error sharing: $e')));
       }
     }
     setState(() => _isDownloading = false);
