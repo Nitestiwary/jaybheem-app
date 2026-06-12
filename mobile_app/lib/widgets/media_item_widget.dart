@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:social_share/social_share.dart';
 import '../models/status_model.dart';
 import '../theme/app_theme.dart';
 
@@ -81,11 +82,105 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
     setState(() => _isDownloading = false);
   }
 
-  void _shareMedia() {
-    final url = widget.status.type == 'video' ? widget.status.videoUrl : widget.status.imageUrl;
-    if (url != null) {
-      Share.share('Check out this amazing status on the Jay Bheem App! $url');
+  void _showShareMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 30,
+              runSpacing: 24,
+              children: [
+                _buildShareOption(Icons.chat_bubble_outline, 'WhatsApp', () => _shareToSocial('whatsapp')),
+                _buildShareOption(Icons.camera_alt_outlined, 'Insta Feed', () => _shareToSocial('insta_feed')),
+                _buildShareOption(Icons.history_toggle_off, 'Insta Story', () => _shareToSocial('insta_story')),
+                _buildShareOption(Icons.facebook, 'FB Feed', () => _shareToSocial('fb_feed')),
+                _buildShareOption(Icons.amp_stories_outlined, 'FB Story', () => _shareToSocial('fb_story')),
+                _buildShareOption(Icons.more_horiz, 'Other', () => _shareToSocial('other')),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildShareOption(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Colors.white24,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 32),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _shareToSocial(String platform) async {
+    Navigator.pop(context); // Close bottom sheet
+    setState(() => _isDownloading = true);
+    
+    try {
+      final url = widget.status.type == 'video' ? widget.status.videoUrl : widget.status.imageUrl;
+      if (url == null) throw Exception('No media url');
+
+      final ext = widget.status.type == 'video' ? 'mp4' : 'jpg';
+      final tempDir = await getTemporaryDirectory();
+      final path = '${tempDir.path}/jaybheem_share_${DateTime.now().millisecondsSinceEpoch}.$ext';
+
+      // Download file to temp storage so social apps can access it locally
+      await Dio().download(url, path);
+
+      // "share_plus" is often more reliable for standard intents than social_share's generic options
+      if (platform == 'other' || platform == 'fb_feed' || platform == 'insta_feed') {
+        await Share.shareXFiles([XFile(path)], text: 'Check out this status on the Jay Bheem App!');
+      } else {
+        // Direct Story integration using social_share
+        switch (platform) {
+          case 'whatsapp':
+            await SocialShare.shareWhatsapp("Check out this status on the Jay Bheem App! $url");
+            break;
+          case 'insta_story':
+            await SocialShare.shareInstagramStory(
+              appId: "4057850024467367", // Generic Meta App ID, required for Android/iOS story intents
+              imagePath: widget.status.type == 'image' ? path : null,
+              videoPath: widget.status.type == 'video' ? path : null,
+            );
+            break;
+          case 'fb_story':
+            await SocialShare.shareFacebookStory(
+              appId: "4057850024467367",
+              imagePath: widget.status.type == 'image' ? path : null,
+              videoPath: widget.status.type == 'video' ? path : null,
+              backgroundTopColor: "#000000",
+              backgroundBottomColor: "#000000",
+            );
+            break;
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error sharing to $platform: $e')));
+      }
     }
+    setState(() => _isDownloading = false);
   }
 
   @override
@@ -186,7 +281,7 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
                 _buildActionButton(
                   icon: Icons.share,
                   label: 'Share',
-                  onTap: _shareMedia,
+                  onTap: _showShareMenu,
                 ),
               ],
             ),
