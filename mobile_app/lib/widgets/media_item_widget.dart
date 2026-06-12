@@ -7,6 +7,8 @@ import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:appinio_social_share/appinio_social_share.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/status_model.dart';
 import '../theme/app_theme.dart';
 
@@ -22,6 +24,7 @@ class MediaItemWidget extends StatefulWidget {
 class _MediaItemWidgetState extends State<MediaItemWidget> {
   VideoPlayerController? _videoController;
   bool _isDownloading = false;
+  bool _isBookmarked = false;
 
   @override
   void initState() {
@@ -32,6 +35,47 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
           _videoController?.setLooping(true);
           setState(() {});
         });
+    }
+    _checkBookmarkStatus();
+  }
+
+  void _checkBookmarkStatus() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('bookmarks')
+          .doc(widget.status.id)
+          .get()
+          .then((doc) {
+        if (doc.exists && mounted) {
+          setState(() => _isBookmarked = true);
+        }
+      });
+    }
+  }
+
+  void _toggleBookmark() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login from Profile tab to save items.')));
+      }
+      return;
+    }
+
+    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('bookmarks').doc(widget.status.id);
+    
+    if (_isBookmarked) {
+      await docRef.delete();
+      setState(() => _isBookmarked = false);
+    } else {
+      await docRef.set({'savedAt': FieldValue.serverTimestamp()});
+      setState(() => _isBookmarked = true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved to Bookmarks!')));
+      }
     }
   }
 
@@ -285,6 +329,12 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
                   label: 'Download',
                   onTap: _downloadMedia,
                   isLoading: _isDownloading,
+                ),
+                const SizedBox(height: 20),
+                _buildActionButton(
+                  icon: _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  label: 'Save',
+                  onTap: _toggleBookmark,
                 ),
                 const SizedBox(height: 20),
                 _buildActionButton(
