@@ -116,6 +116,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ],
+          const SizedBox(height: 40),
+          _buildLegalLinks(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegalLinks() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 16,
+        runSpacing: 8,
+        children: [
+          GestureDetector(onTap: (){}, child: const Text('Privacy Policy', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline))),
+          GestureDetector(onTap: (){}, child: const Text('Terms', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline))),
+          GestureDetector(onTap: (){}, child: const Text('Disclaimer', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline))),
+          GestureDetector(onTap: (){}, child: const Text('Contact Us', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline))),
         ],
       ),
     );
@@ -138,7 +157,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: () => FirebaseAuth.instance.signOut(),
                 icon: const Icon(Icons.logout, size: 18),
                 label: const Text('Sign Out'),
-              )
+              ),
+              const SizedBox(height: 16),
+              _buildLegalLinks(),
             ],
           ),
         ),
