@@ -164,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         const Expanded(
-          child: SavedItemsGrid(),
+          child: SavedItemsViewer(),
         ),
       ],
     );
@@ -190,8 +190,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class SavedItemsGrid extends StatelessWidget {
-  const SavedItemsGrid({super.key});
+class SavedItemsViewer extends StatefulWidget {
+  const SavedItemsViewer({super.key});
+
+  @override
+  State<SavedItemsViewer> createState() => _SavedItemsViewerState();
+}
+
+class _SavedItemsViewerState extends State<SavedItemsViewer> {
+  int _currentIndex = 0;
+
+  void _removeFromSaved(String statusId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).collection('bookmarks').doc(statusId).delete();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Removed from saved')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -208,44 +225,75 @@ class SavedItemsGrid extends StatelessWidget {
           return const Center(child: Text('No saved items yet.'));
         }
 
-        // Get saved IDs
         List<String> savedIds = snapshot.data!.docs.map((doc) => doc.id).toList();
-        
-        // Temporarily map from DummyData until real feed is implemented
         List<StatusModel> allStatuses = DummyData.generateStatuses();
         List<StatusModel> savedStatuses = allStatuses.where((s) => savedIds.contains(s.id)).toList();
 
-        return MasonryGridView.count(
-          crossAxisCount: 2,
-          mainAxisSpacing: 4,
-          crossAxisSpacing: 4,
-          padding: const EdgeInsets.all(4),
-          itemCount: savedStatuses.length,
-          itemBuilder: (context, index) {
-            final status = savedStatuses[index];
-            return GestureDetector(
-              onTap: () {
-                // Open full screen view
-                Navigator.push(context, MaterialPageRoute(builder: (_) => Scaffold(
-                  body: MediaItemWidget(status: status),
-                  extendBodyBehindAppBar: true,
-                  appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-                )));
-              },
-              child: Stack(
-                children: [
-                  if (status.type == 'image' && status.imageUrl != null)
-                    CachedNetworkImage(imageUrl: status.imageUrl!, fit: BoxFit.cover),
-                  if (status.type == 'video')
-                    Container(
-                      color: Colors.black,
-                      height: 200,
-                      child: const Center(child: Icon(Icons.play_circle_outline, color: Colors.white, size: 50)),
+        if (savedStatuses.isEmpty) {
+          return const Center(child: Text('No saved items yet.'));
+        }
+
+        if (_currentIndex >= savedStatuses.length) {
+          _currentIndex = savedStatuses.length - 1;
+        }
+
+        final status = savedStatuses[_currentIndex];
+
+        return Column(
+          children: [
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    MediaItemWidget(status: status),
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: const Text('Remove'),
+                        onPressed: () => _removeFromSaved(status.id),
+                      ),
                     ),
+                  ],
+                ),
+              ),
+            ),
+            
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _currentIndex > 0 ? () => setState(() => _currentIndex--) : null,
+                    icon: const Icon(Icons.arrow_back_ios, size: 16),
+                    label: const Text('Previous'),
+                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
+                  ),
+                  Text('${_currentIndex + 1} of ${savedStatuses.length}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ElevatedButton(
+                    onPressed: _currentIndex < savedStatuses.length - 1 ? () => setState(() => _currentIndex++) : null,
+                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [Text('Next'), SizedBox(width: 8), Icon(Icons.arrow_forward_ios, size: 16)],
+                    ),
+                  ),
                 ],
               ),
-            );
-          },
+            ),
+            const SizedBox(height: 16),
+          ],
         );
       },
     );

@@ -333,8 +333,9 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
                 const SizedBox(height: 20),
                 _buildActionButton(
                   icon: _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                  label: 'Save',
+                  label: _isBookmarked ? 'Saved' : 'Save',
                   onTap: _toggleBookmark,
+                  iconColor: _isBookmarked ? Colors.amber : Colors.white,
                 ),
                 const SizedBox(height: 20),
                 _buildActionButton(
@@ -350,7 +351,7 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
     );
   }
 
-  Widget _buildActionButton({required IconData icon, required String label, required VoidCallback onTap, bool isLoading = false}) {
+  Widget _buildActionButton({required IconData icon, required String label, required VoidCallback onTap, bool isLoading = false, Color iconColor = Colors.white}) {
     return Column(
       children: [
         isLoading 
@@ -364,7 +365,11 @@ class _MediaItemWidgetState extends State<MediaItemWidget> {
                     color: Colors.black45,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: Colors.white, size: 28),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                    child: Icon(icon, key: ValueKey('${icon.codePoint}_$iconColor'), color: iconColor, size: 28),
+                  ),
                 ),
               ),
         const SizedBox(height: 6),
